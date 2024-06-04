@@ -1,14 +1,20 @@
 
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:tracky/core/screen_size/mediaQuery.dart';
 import 'package:tracky/features/about/page/about_page.dart';
+import 'package:tracky/features/auth/auth_services/auth_services.dart';
+import 'package:tracky/features/auth/signin/sign_in.dart';
 
+import '../../contact/page/contact_page.dart';
 import '../../profile/page/profile_page.dart';
 import '../../settings/page/settings_page.dart';
 
 
 class MyDrawer extends StatefulWidget {
-  const MyDrawer({super.key});
+  const MyDrawer({super.key, required this.storedPhoneNumber, required this.storedOccupation, required this.storedName});
+
+  final String storedPhoneNumber, storedOccupation, storedName;
 
   @override
   State<MyDrawer> createState() => _MyDrawerState();
@@ -20,13 +26,14 @@ class _MyDrawerState extends State<MyDrawer> {
     // TODO: implement initState
     super.initState();
   }
-  //
-  // void logout(BuildContext context) {
-  //   final authService = AuthServices();
-  //   authService.signOut();
-  //   Navigator.push(
-  //       context, MaterialPageRoute(builder: (context) => LoginPage()));
-  // }
+
+  void logout(BuildContext context) {
+    final authService = FirebaseAuthServices();
+    authService.signOut();
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => const LoginPage()));
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +47,14 @@ class _MyDrawerState extends State<MyDrawer> {
               const Gap(50),
               ListTile(
                 title: Center(
-                  child: Container(
+                  child: Container(width: getWidth(context)-20,
                    height: MediaQuery.of(context).size.height/6,
                     margin: const EdgeInsets.only(bottom: 30),
                       decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
                           borderRadius: BorderRadius.circular(10)),
-                      // child: Lottie.asset('assets/wechat.json',
-                      //     width: 150, height: 150, animate: false
-                      // ),
+                      child: Image.asset('assets/images/Tracky.png',
+                          width: 150, height: 150  ),
                   ),
                 ),
               ),
@@ -71,7 +77,7 @@ class _MyDrawerState extends State<MyDrawer> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const ProfilePage()));
+                            builder: (context) =>   ProfilePage(storedPhoneNumber: widget.storedPhoneNumber, storedOccupation: widget.storedOccupation, storedName: widget.storedName)));
                   },
                 ),
               ),
@@ -85,6 +91,26 @@ class _MyDrawerState extends State<MyDrawer> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => SettingsPage()));
+                  },
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: const Divider(
+                  color: Colors.grey,
+                  thickness: 0.5,
+                ),
+              ),
+              const Gap(40),
+              Padding(
+                padding: const EdgeInsets.only(left: 25.0),
+                child: ListTile(
+                  title:  Text("C O N T A C T  U S", style: TextStyle( color: Theme.of(context).colorScheme.surface),),
+                  leading:  Icon(Icons.phone, color: Theme.of(context).colorScheme.surface),
+                  onTap: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => const ContactPage()));
                   },
                 ),
               ),
@@ -102,15 +128,17 @@ class _MyDrawerState extends State<MyDrawer> {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 25.0, bottom: 30),
+            padding: const EdgeInsets.only(left: 25.0, bottom: 40),
             child: ListTile(
               title:  Text("L O G O U T", style: TextStyle( color: Theme.of(context).colorScheme.surface),),
               leading:  Icon(Icons.logout, color: Theme.of(context).colorScheme.surface),
               onTap: () {
-                //logout(context);
+                logout(context);
               },
             ),
           ),
+
+
         ],
       ),
     );

@@ -29,7 +29,7 @@ class HabitTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               onPressed: editHabit,
               backgroundColor: Colors.grey.shade800,
-              icon: Icons.settings,
+              icon: Icons.edit,
             ),
 
             //delete

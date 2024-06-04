@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 
 class MyHeatMap extends StatelessWidget {
-  const MyHeatMap({super.key, required this.startDate, required this.dataset});
+  const MyHeatMap({super.key, required this.startDate, required this.dataset, required this.onClick});
   final DateTime startDate;
   final Map<DateTime, int> dataset;
+  final dynamic Function(DateTime)? onClick;
 
   @override
   Widget build(BuildContext context) {
     return HeatMap(
+      onClick: onClick,
       showColorTip: false,
       startDate: startDate,
       endDate: DateTime.now(),
@@ -27,10 +29,7 @@ class MyHeatMap extends StatelessWidget {
         5: Colors.green.shade600,
         6: Colors.green.shade700,
         7: Colors.green.shade800
-
       },
-
-
     );
   }
 }

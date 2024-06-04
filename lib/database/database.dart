@@ -1,129 +1,102 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:tracky/model/app_settings.dart';
-import 'package:tracky/model/habits.dart';
+import 'package:tracky/utility/toast.dart';
+import '../model/habits.dart';
 
-class HabitDatabase extends ChangeNotifier {
-  static late Isar isar;
+class HabitDatabase {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /*
-  SETUP
-   */
+  CollectionReference get habitsCollection => _firestore.collection('habits');
 
-//INITIALIZE DATABASE
-  static Future<void> initialize() async {
-    final dir = await getApplicationCacheDirectory();
-    isar =
-        await Isar.open([HabitSchema, AppSettingsSchema], directory: dir.path);
-  }
-
-//save first date of app starting
-  Future<void> saveFirstLaunchDate() async {
-    final existingSettings = await isar.appSettings.where().findFirst();
-    if (existingSettings == null) {
-      final settings = AppSettings()..firstLaunchData = DateTime.now();
-      await isar.writeTxn(() => isar.appSettings.put(settings));
+  Stream<List<Habit>> readHabits() {
+    final userID = _auth.currentUser?.uid;
+    if (userID == null) {
+      return Stream.value([]);
     }
+
+    return habitsCollection
+        .where('userID', isEqualTo: userID)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => Habit.fromFirestore(doc)).toList());
   }
 
-//get first date of app staring
-  Future<DateTime?> getFirstLauncDate() async {
-    final settings = await isar.appSettings.where().findFirst();
-    return settings?.firstLaunchData;
-  }
-
-/*
-CRUDE OPERATIONS
- */
-
-//List of habits
-  final List<Habit> currentHabit = [];
-
-//Create Habit
   Future<void> addHabit(String habitName) async {
-    //create new habit
-    final newHabit = Habit()..name = habitName;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Convert the new habit name to lowercase
+      final habitNameLowercase = habitName.toLowerCase();
 
-    //save to db
+      // Check if the habit with the same name already exists for the current user
+      final existingHabit = await _firestore
+          .collection('habits')
+          .where('userID', isEqualTo: user.uid)
+          .get();
 
-    await isar.writeTxn(() => isar.habits.put(newHabit));
+      // Check if any of the existing habits has the same name (case-insensitive)
+      final habitExists = existingHabit.docs.any((doc) {
+        final name = (doc.data())['name'] as String;
+        return name.toLowerCase() == habitNameLowercase;
+      });
 
-    //re-read from db
-    readHabits();
+      if (!habitExists) {
+        // Habit with the same name does not exist, so add the new habit
+        await _firestore.collection('habits').add({
+          'userID': user.uid,
+          'name': habitName,
+          'completedDays': [],
+        });
+      } else {
+        // Habit with the same name already exists, alert the user
+        Utility().toastMessage('The task "$habitName" already exists.');
+      }
+    }
   }
 
-//Read Habits
-  Future<void> readHabits() async {
-    //fetch all habit from db
-    List<Habit> fetchedHabits = await isar.habits.where().findAll();
 
-    //feed to current habits
-    currentHabit.clear();
-    currentHabit.addAll(fetchedHabits);
-
-    //update ui
-    notifyListeners();
+  Future<void> updateHabitName(String id, String newName) async {
+    await habitsCollection.doc(id).update({'name': newName});
   }
 
-//Update habit
-  Future<void> updateHabitCompletion(int id, bool isCompleted) async {
-    //find specif habit
-    final habit = await isar.habits.get(id);
-    //update the completion status
-    if (habit != null) {
-      await isar.writeTxn(() async {
-        //if habit is completed , add the current date to completed date list
-        if (isCompleted && !habit.completedDays.contains(DateTime.now())) {
-          final today = DateTime.now();
+  Future<void> deleteHabit(String id) async {
+    await habitsCollection.doc(id).delete();
+  }
 
-          //add current date if not already in the list
-          habit.completedDays.add(DateTime(today.year, today.month, today.day));
-        }
-        //if not completed, remove current date from the list
-        else {
-          habit.completedDays.removeWhere((date) =>
-              date.year == DateTime.now().year &&
-              date.month == DateTime.now().month &&
-              date.day == DateTime.now().day);
-        }
+  void toggleHabit(Habit habit) async {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final user = FirebaseAuth.instance.currentUser;
 
-        //save the updated habit
-        await isar.habits.put(habit);
+    if (user != null) {
+      if (habit.completedDays.any((date) =>
+      date.year == todayDate.year &&
+          date.month == todayDate.month &&
+          date.day == todayDate.day)) {
+        // Remove today's date (mark as undone)
+        habit.completedDays.removeWhere((date) =>
+        date.year == todayDate.year &&
+            date.month == todayDate.month &&
+            date.day == todayDate.day);
+      } else {
+        // Add today's date (mark as done)
+        habit.completedDays.add(todayDate);
+      }
+
+      // Update the habit in Firestore
+      await _firestore.collection('habits').doc(habit.id).update({
+        'completedDays': habit.completedDays.map((date) => Timestamp.fromDate(date)).toList(),
       });
     }
-    //re-read from db
-    readHabits();
   }
 
-//Edit Habit name
-  Future<void> updateHabitName(int id, String newName) async {
-    //find the name
-    final habit = await isar.habits.get(id);
 
-    //update the name
-    if (habit != null) {
-      await isar.writeTxn(() async {
-        habit.name = newName;
-
-        //save updated habit back to the db
-        await isar.habits.put(habit);
-      });
+  Future<DateTime?> getFirstLaunchDate() async {
+    final settingsDoc = await _firestore.collection("Users").doc(_auth.currentUser!.uid).get();
+    if (settingsDoc.exists) {
+      final data = settingsDoc.data() as Map<String, dynamic>;
+      return (data['firstLaunchDate'] as Timestamp).toDate();
     }
-
-    //re-read
-    readHabits();
-  }
-
-//Delete Habit
-  Future<void> deleteHabit(int id) async {
-    await isar.writeTxn(() async {
-      await isar.habits.delete(id);
-    });
-
-    //re-read
-
-    readHabits();
+    return null;
   }
 }

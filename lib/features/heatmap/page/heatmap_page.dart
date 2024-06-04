@@ -1,116 +1,56 @@
-import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../../database/database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
+import 'package:provider/provider.dart';
+import 'package:tracky/core/screen_size/mediaQuery.dart';
+ import '../../../database/database.dart';
 import '../../../model/habits.dart';
+import '../../tasks/widget/task_shimmer_loading.dart';
 import '../widget/heatmap.dart';
+import '../widget/pieChartView.dart';
+
 
 class HeatMapPage extends StatefulWidget {
-  const HeatMapPage({super.key});
+  const HeatMapPage({Key? key}) : super(key: key);
 
   @override
   State<HeatMapPage> createState() => _HeatMapPageState();
 }
 
-class _HeatMapPageState extends State<HeatMapPage> {
-
-  //TODO: change the pie chart to a place to display the data of a particular day whenever
-  // TODO: the day is clicked, it will be a screen for extra data information
-
-  //TODO: Change the functions to firebase
-
+class _HeatMapPageState extends State<HeatMapPage> with SingleTickerProviderStateMixin{
   int touchedIndex = 0;
+
+  DateTime? _selectedDate;
+  List<Habit> _tasksForSelectedDate = [];
+
+  late TabController _tabController;
+
+  late String userId;
 
   @override
   void initState() {
-    Provider.of<HabitDatabase>(context, listen: false).readHabits();
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    userId = FirebaseAuth.instance.currentUser!.uid; // Example way to get the current userId
   }
 
-  List<PieChartSectionData> showingSections() {
-    return List.generate(
-      4,
-          (i) {
-        final isTouched = i == touchedIndex;
-        const color0 = Colors.blue;
-        const color1 = Colors.yellow;
-        const color2 = Colors.pink;
-        const color3 = Colors.green;
-
-        switch (i) {
-          case 0:
-            return PieChartSectionData(
-              color: color0,
-              value: 25,
-              title: '',
-              radius: 80,
-              titlePositionPercentageOffset: 0.55,
-              borderSide: isTouched
-                  ? const BorderSide(
-                  color: Colors.white, width: 6)
-                  : BorderSide(
-                  color: Colors.white.withOpacity(0)),
-            );
-          case 1:
-            return PieChartSectionData(
-              color: color1,
-              value: 25,
-              title: '',
-              radius: 65,
-              titlePositionPercentageOffset: 0.55,
-              borderSide: isTouched
-                  ? const BorderSide(
-                  color: Colors.white, width: 6)
-                  : BorderSide(
-                  color: Colors.white.withOpacity(0)),
-            );
-          case 2:
-            return PieChartSectionData(
-              color: color2,
-              value: 25,
-              title: '',
-              radius: 60,
-              titlePositionPercentageOffset: 0.6,
-              borderSide: isTouched
-                  ? const BorderSide(
-                  color: Colors.white, width: 6)
-                  : BorderSide(
-                  color: Colors.white.withOpacity(0)),
-            );
-          case 3:
-            return PieChartSectionData(
-              color: color3,
-              value: 25,
-              title: '',
-              radius: 70,
-              titlePositionPercentageOffset: 0.55,
-              borderSide: isTouched
-                  ? const BorderSide(
-                  color: Colors.white, width: 6)
-                  : BorderSide(
-                  color: Colors.white.withOpacity(0)),
-            );
-          default:
-            throw Error();
-        }
-      },
-    );
-  }
-
+@override
+void dispose() {
+  _tabController.dispose();
+  super.dispose();
+}
 
   Map<DateTime, int> prepHeatMapDataset(List<Habit> habits) {
-    Map<DateTime, int> dataset = {};
+    final Map<DateTime, int> dataset = {};
 
     for (var habit in habits) {
       for (var date in habit.completedDays) {
-        //normalize date to avoid time mismatch
         final normalizedDate = DateTime(date.year, date.month, date.day);
-
         if (dataset.containsKey(normalizedDate)) {
           dataset[normalizedDate] = dataset[normalizedDate]! + 1;
         } else {
-          //else initialize it with a count of 1
           dataset[normalizedDate] = 1;
         }
       }
@@ -118,69 +58,147 @@ class _HeatMapPageState extends State<HeatMapPage> {
     return dataset;
   }
 
-  Widget _buildHeatMap() {
-    //habit database
-    final habitDatabase = context.watch<HabitDatabase>();
 
-    //current habits
-    List<Habit> currentHabits = habitDatabase.currentHabit;
+  Widget _buildHeatMap(HabitDatabase habitDatabase) {
+    return StreamBuilder<List<Habit>>(
+      stream: habitDatabase.readHabits(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final habits = snapshot.data!;
+          return FutureBuilder<DateTime?>(
+            future: habitDatabase.getFirstLaunchDate(),
+            builder: (context, dateSnapshot) {
+              if (dateSnapshot.hasData) {
+                return MyHeatMap(
 
-    //return heat map ui
+                  startDate: dateSnapshot.data!,
+                  dataset: prepHeatMapDataset(habits), onClick: (date) => _onDateSelected(date),
+                );
+              } else {
+                return subjectShimmerLoading(getHeight(context)/3.5, getWidth(context));
+              }
+            },
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return  Padding(
+                padding: const EdgeInsets.symmetric(vertical: 7.0, horizontal: 0),
+                child: subjectShimmerLoading(getHeight(context)/3, getWidth(context)),
+              );
 
-    return FutureBuilder(
-        future: habitDatabase.getFirstLauncDate(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return MyHeatMap(
-                startDate: snapshot.data!,
-                dataset: prepHeatMapDataset(currentHabits));
-          } else {
-            return Container();
-          }
-        });
+        }
+        else if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        } else {
+          return  Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7.0, horizontal: 0),
+            child: subjectShimmerLoading(getHeight(context)/3, getWidth(context)),
+          );
+        }
+      },
+    );
   }
 
-  Widget _buildPieChart(){
-    return Expanded(
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: PieChart(
-          PieChartData(
-            pieTouchData: PieTouchData(
-              touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                setState(() {
-                  if (!event.isInterestedForInteractions ||
-                      pieTouchResponse == null ||
-                      pieTouchResponse.touchedSection == null) {
-                    touchedIndex = -1;
-                    return;
-                  }
-                  touchedIndex = pieTouchResponse
-                      .touchedSection!.touchedSectionIndex;
-                });
-              },
+  void _onDateSelected(DateTime date) async {
+    setState(() {
+      _selectedDate = date;
+    });
+
+    // Fetch tasks for the selected date from Firestore
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('habits')
+        .where('userID', isEqualTo: userId)
+        .get();
+
+    final tasksForDate = querySnapshot.docs
+        .map((doc) => Habit.fromFirestore(doc))
+        .where((habit) =>
+        habit.completedDays.contains(DateTime(date.year, date.month, date.day)))
+        .toList();
+
+    setState(() {
+      _tasksForSelectedDate = tasksForDate;
+    });
+  }
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    final habitDatabase = Provider.of<HabitDatabase>(context);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Track, Improve, Succeed",
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.surface,
+              ),
             ),
-            startDegreeOffset: 180,
-            borderData: FlBorderData(
-              show: false,
+            const Gap(20),
+            _buildHeatMap(habitDatabase),
+            const Gap(20),
+
+            TabBar(
+              labelColor: Theme.of(context).colorScheme.inversePrimary,
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Daily Tasks'),
+                Tab(text: 'Weekly'),
+                Tab(text: 'Monthly'),
+                Tab(text: 'Yearly'),
+              ],
             ),
-            sectionsSpace: 1,
-            centerSpaceRadius: 0,
-            sections: showingSections(),
-          ),
+            Expanded(
+              child: TabBarView(
+
+                controller: _tabController,
+                children: [
+                  _buildTasksList(),
+                  TaskPieChartView(userId: userId, period: 'Weekly'),
+                  TaskPieChartView(userId: userId, period: 'Monthly'),
+                  TaskPieChartView(userId: userId, period: 'Yearly'),
+                ],
+              ),
+            ),
+            const Gap(20),
+          ],
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(children: [
-        
-        _buildHeatMap(),
-        _buildPieChart()
-      ],),
+  Widget _buildTasksList() {
+    if (_selectedDate == null) {
+      return const Center(
+        child: Text('Select a date on the heatmap to see tasks.'),
+      );
+    }
+
+    if (_tasksForSelectedDate.isEmpty) {
+      return Center(
+        child: Text('No tasks completed on ${_selectedDate!.toLocal().toString().split(' ')[0]}.'),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _tasksForSelectedDate.length,
+      itemBuilder: (context, index) {
+        final habit = _tasksForSelectedDate[index];
+        return ListTile(
+          title: Text(habit.name),
+          subtitle: Text('Completed on ${_selectedDate!.toLocal().toString().split(' ')[0]}'),
+          leading: const Icon(Icons.check_circle, color: Colors.green),
+        );
+      },
     );
   }
 }
+

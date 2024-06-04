@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
-import 'package:gap/gap.dart';
+ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:tracky/core/date_time.dart';
+import 'package:tracky/utility/toast.dart';
 
 class LockPage extends StatefulWidget {
   const LockPage({super.key});
@@ -27,10 +27,10 @@ class _LockPageState extends State<LockPage> {
   }
 
   void _enableForegroundMode() async {
-    print("Activated");
-    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_KEEP_SCREEN_ON);
-    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SHOW_WHEN_LOCKED);
-    await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_DISMISS_KEYGUARD);
+    Utility().toastMessage("Coming Soon....");
+    // await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_KEEP_SCREEN_ON);
+    // await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SHOW_WHEN_LOCKED);
+    // await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_DISMISS_KEYGUARD);
   }
 
 
@@ -43,11 +43,11 @@ class _LockPageState extends State<LockPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               "Increase Productivity",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
-            Text(
+            const Text(
               "Keep device away",
               style: TextStyle(fontWeight: FontWeight.normal),
             ),
@@ -86,7 +86,7 @@ class _LockPageState extends State<LockPage> {
                 width: MediaQuery.of(context).size.width - 30,
                 height: 50,
                 decoration:
-                    BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(30)),
+                    BoxDecoration(color: Theme.of(context).colorScheme.tertiary, borderRadius: BorderRadius.circular(30)),
                 child: Center(child: Text("Lock Device")),
               ),
             ),
