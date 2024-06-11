@@ -10,7 +10,7 @@ Building and maintaining habits can be challenging, especially without a clear w
 Another new feature I am looking to add to the next Tracky update is the ability to lock your device away, as most times our devices tend to keep us distracted from important tasks at hand, hence we spend a lot of time on our devices which would be bad for productivity.
 
 ## Quick Start
-Tracky can be downloaded [here](https://example.com/download) and installed on your device.
+Tracky can be downloaded [here](https://drive.google.com/file/d/1sctnuI85UP1KA0EW6ev8ZIM0_nrXqo0p/view?usp=sharing) and installed on your device.
 
 ## Usage Guide
 - Download & Install the app
