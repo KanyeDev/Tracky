@@ -6,6 +6,7 @@ import 'package:tracky/features/about/page/about_page.dart';
 import 'package:tracky/features/auth/auth_services/auth_services.dart';
 import 'package:tracky/features/auth/signin/sign_in.dart';
 
+import '../../../utility/pageRoutes.dart';
 import '../../contact/page/contact_page.dart';
 import '../../profile/page/profile_page.dart';
 import '../../settings/page/settings_page.dart';
@@ -30,8 +31,11 @@ class _MyDrawerState extends State<MyDrawer> {
   void logout(BuildContext context) {
     final authService = FirebaseAuthServices();
     authService.signOut();
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => const LoginPage()));
+    Navigator.pushAndRemoveUntil(
+        context,
+        CustomPageRouteLR(
+            child: const LoginPage(),
+            direction: AxisDirection.right), (route) => false);
   }
 
 

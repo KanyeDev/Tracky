@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tracky/features/profile/page/privacy_policy_page.dart';
+import 'package:tracky/features/profile/page/terms_and_con_page.dart';
 import 'package:tracky/utility/toast.dart';
 
 import '../../../core/screen_size/mediaQuery.dart';
@@ -290,16 +292,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
                 const Gap(30),
                 //Privacy Policy
-                buildTextWidget(
-                    context, "P R I V A C Y  P O L I C Y ", Icons.lock, ''),
+                GestureDetector(
+                  onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage())),
+                  child: buildTextWidget(
+                      context, "P R I V A C Y  P O L I C Y ", Icons.lock, ''),
+                ),
                 const Gap(20),
                 //Terms and conditions
-                buildTextWidget(context, "T E R M S  A N D  C O N D I T I O N S",
-                    Icons.menu_book, ''),
+                GestureDetector(
+                  onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (context) => TermsAndConditionsPage())),
+                  child: buildTextWidget(context, "T E R M S  A N D  C O N D I T I O N S",
+                      Icons.menu_book, ''),
+                ),
                 const Gap(20),
                 //Chat Support
-                buildTextWidget(
-                    context, "C H A T  S U P P O R T", Icons.support_agent, ''),
+                GestureDetector(
+                  onTap: () => Utility().toastMessage("Coming soon..."),
+                  child: buildTextWidget(
+                      context, "C H A T  S U P P O R T", Icons.support_agent, ''),
+                ),
 
                 //Logout
                 const Expanded(child: SizedBox()),
@@ -323,7 +334,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         .surface,
                     onTap: () {
                       _authServices.signOut();
-                      Navigator.pushReplacement(context, FadeRoute(page: const LoginPage()));
+                      Navigator.pushAndRemoveUntil(
+                          context,
+                          CustomPageRouteLR(
+                              child: const LoginPage(),
+                              direction: AxisDirection.right), (route) => false);
                     },
                     isLoading: false),
 

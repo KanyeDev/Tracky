@@ -332,30 +332,7 @@ class _SignupPageState extends State<SignupPage> {
                         isLoading: isLoading.value,
                         child: Row(mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Stack(
-                              children: [
-                                const FaIcon(FontAwesomeIcons.google,
-                                  color: Colors.black,),
-                                ShaderMask(blendMode: BlendMode.modulate,
-                                    shaderCallback: (Rect bounds) {
-                                      return const LinearGradient(
-                                        colors: [
-                                          Colors.red,
-                                          // Replace with your desired colors for gradient
-                                          Colors.yellow,
-                                          // Replace with your desired colors for gradient
-                                          Colors.green,
-                                          // Replace with your desired colors for gradient
-                                          Colors.blue,
-                                        ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ).createShader(bounds);
-                                    },
-                                    child: const FaIcon(FontAwesomeIcons.google,
-                                      color: Colors.white,)),
-                              ],
-                            ),
+                            SizedBox(width: 24, child: Image.asset("asset/images/google_logo.png")),
                             const Gap(15),
                             Text(
                               "Sign in with Google",

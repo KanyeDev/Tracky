@@ -63,6 +63,7 @@ void dispose() {
     return StreamBuilder<List<Habit>>(
       stream: habitDatabase.readHabits(),
       builder: (context, snapshot) {
+
         if (snapshot.hasData) {
           final habits = snapshot.data!;
           return FutureBuilder<DateTime?>(
